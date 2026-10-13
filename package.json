@@ -1,0 +1,29 @@
+{
+  "name": "atividadeavaliativa03dwii",
+  "version": "1.0.0",
+  "description": "Sistema de Vendas com Comissões, Metas e Performance",
+  "homepage": "https://github.com/SamuelMartins00/AtividadeAvaliativa03DWII#readme",
+  "bugs": {
+    "url": "https://github.com/SamuelMartins00/AtividadeAvaliativa03DWII/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamuelMartins00/AtividadeAvaliativa03DWII.git"
+  },
+  "license": "ISC",
+  "author": "Samuel Martins",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.7",
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
