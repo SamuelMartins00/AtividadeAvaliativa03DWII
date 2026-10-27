@@ -1,0 +1,500 @@
+PLANO DE TESTES 
+BASE_URL: http://localhost:3000
+
+1. TEST
+[GET] {{BASE_URL}}/teste-banco
+Objetivo: verificar se a API consegue consultar o banco.
+Body: nenhum.
+Esperado:
+- 200 OK: {"mensagem":"Conexão com o banco realizada com sucesso."}
+- 500 Internal Server Error se o banco não estiver acessível.
+
+2. VENDEDORES
+2.1 Cadastrar vendedor válido
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "nome": "Vendedor Teste",
+  "meta_mensal": 10000,
+  "percentual_base": 5
+}
+Esperado: 201 Created; mensagem de sucesso e id_vendedor numérico.
+Guarde o id_vendedor retornado para os testes seguintes.
+
+2.2 Listar vendedores
+[GET] {{BASE_URL}}/vendedores
+Body: nenhum.
+Esperado: 200 OK; array de vendedores com id_vendedor, nome, meta_mensal,
+percentual_base e ativo, ordenado por ID.
+
+2.3 Consultar vendedor existente
+[GET] {{BASE_URL}}/vendedores/<ID_VENDEDOR_VALIDO>
+Body: nenhum.
+Esperado: 200 OK; objeto do vendedor.
+
+2.4 Consultar vendedor inexistente
+[GET] {{BASE_URL}}/vendedores/999999
+Body: nenhum.
+Esperado: 404 Not Found; {"erro":"Vendedor não encontrado."}
+Observação: confirme antes que esse ID não existe.
+
+2.5 ID inválido ao consultar vendedor
+[GET] {{BASE_URL}}/vendedores/abc
+Body: nenhum.
+Esperado: 400 Bad Request; {"erro":"ID do vendedor inválido."}
+
+2.6 Cadastrar vendedor sem nome
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "meta_mensal": 10000,
+  "percentual_base": 5
+}
+Esperado: 400 Bad Request; erro solicitando nome, meta_mensal e percentual_base.
+
+2.7 Cadastrar vendedor sem meta_mensal
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "nome": "Teste Sem Meta",
+  "percentual_base": 5
+}
+Esperado: 400 Bad Request.
+
+2.8 Cadastrar vendedor sem percentual_base
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "nome": "Teste Sem Percentual",
+  "meta_mensal": 10000
+}
+Esperado: 400 Bad Request.
+
+2.9 Cadastrar vendedor com meta negativa
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "nome": "Teste Meta Negativa",
+  "meta_mensal": -1,
+  "percentual_base": 5
+}
+Esperado pela validação da rota: 400 Bad Request.
+
+2.10 Cadastrar vendedor com percentual base negativo
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "nome": "Teste Percentual Negativo",
+  "meta_mensal": 10000,
+  "percentual_base": -1
+}
+Esperado: 400 Bad Request.
+
+2.11 Cadastrar vendedor com percentual base acima de 100
+[POST] {{BASE_URL}}/vendedores
+Body:
+{
+  "nome": "Teste Percentual Alto",
+  "meta_mensal": 10000,
+  "percentual_base": 101
+}
+Esperado: a rota não valida explicitamente o limite máximo; o banco deve rejeitar
+pela constraint chk_percentual_base e a API provavelmente responderá 500.
+Registrar como teste de validação/limite e considerar adicionar validação 0–100 na API.
+
+2.12 Atualizar vendedor existente
+[PUT] {{BASE_URL}}/vendedores/<ID_VENDEDOR_VALIDO>
+Body:
+{
+  "nome": "Vendedor Teste Atualizado",
+  "meta_mensal": 15000,
+  "percentual_base": 6
+}
+Esperado: 200 OK; {"mensagem":"Vendedor atualizado com sucesso."}
+
+2.13 Atualizar vendedor com ID inválido
+[PUT] {{BASE_URL}}/vendedores/abc
+Body:
+{
+  "nome": "Vendedor Inválido",
+  "meta_mensal": 10000,
+  "percentual_base": 5
+}
+Esperado: 400 Bad Request; ID inválido.
+
+2.14 Atualizar vendedor inexistente
+[PUT] {{BASE_URL}}/vendedores/999999
+Body:
+{
+  "nome": "Vendedor Inexistente",
+  "meta_mensal": 10000,
+  "percentual_base": 5
+}
+Esperado: 404 Not Found; vendedor não encontrado.
+
+2.15 Atualizar vendedor sem campos obrigatórios
+[PUT] {{BASE_URL}}/vendedores/<ID_VENDEDOR_VALIDO>
+Body:
+{
+  "nome": "Vendedor Incompleto"
+}
+Esperado: 400 Bad Request.
+
+2.16 Atualizar vendedor com valor negativo
+[PUT] {{BASE_URL}}/vendedores/<ID_VENDEDOR_VALIDO>
+Body:
+{
+  "nome": "Vendedor Meta Negativa",
+  "meta_mensal": -100,
+  "percentual_base": 5
+}
+Esperado: 400 Bad Request.
+
+2.17 Desativar vendedor existente
+[PATCH] {{BASE_URL}}/vendedores/<ID_VENDEDOR_VALIDO>/desativar
+Body: nenhum.
+Esperado: 200 OK; {"mensagem":"Vendedor desativado com sucesso."}
+Atenção: vendedor desativado não deve poder registrar novas vendas.
+
+2.18 Desativar vendedor com ID inválido
+[PATCH] {{BASE_URL}}/vendedores/abc/desativar
+Body: nenhum.
+Esperado: 400 Bad Request; ID inválido.
+
+2.19 Desativar vendedor inexistente
+[PATCH] {{BASE_URL}}/vendedores/999999/desativar
+Body: nenhum.
+Esperado: 404 Not Found; vendedor não encontrado.
+
+
+3. VENDAS
+Use um vendedor ATIVO e uma região existente. Exemplo de corpo válido:
+{
+  "id_venda": 900001,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-20 10:30:00",
+  "valor_venda": 1000,
+  "tipo_cliente": "PF"
+}
+
+3.1 Cadastrar venda válida para cliente PF
+[POST] {{BASE_URL}}/vendas
+Body: use o JSON de exemplo acima.
+Esperado: 201 Created; mensagem de sucesso, id_venda 900001 e valor_comissao.
+Com percentual base de 5% e bônus regional Norte de 1%, comissão PF esperada:
+1000 * (5 + 2 + 1) / 100 = 80.00.
+Ajuste o cálculo conforme percentual do vendedor e bônus real da região.
+
+3.2 Cadastrar venda válida para cliente PJ
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900002,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 2,
+  "data_venda": "2026-10-21 14:00:00",
+  "valor_venda": 2000,
+  "tipo_cliente": "PJ"
+}
+Esperado: 201 Created; comissão calculada usando bônus de cliente PJ de 3 pontos
+percentuais e bônus da região.
+
+3.3 Listar todas as vendas
+[GET] {{BASE_URL}}/vendas
+Body: nenhum.
+Esperado: 200 OK; array com dados da venda, vendedor e região, em ordem de data
+decrescente.
+
+3.4 Consultar vendas de um vendedor existente
+[GET] {{BASE_URL}}/vendas/vendedor/<ID_VENDEDOR_VALIDO>
+Body: nenhum.
+Esperado: 200 OK; array de vendas do vendedor. Se ele ainda não tiver vendas,
+o resultado deve ser [].
+
+3.5 Consultar vendas de vendedor com ID inválido
+[GET] {{BASE_URL}}/vendas/vendedor/abc
+Body: nenhum.
+Esperado: 400 Bad Request; ID do vendedor inválido.
+
+3.6 Consultar vendas de vendedor sem vendas/inexistente
+[GET] {{BASE_URL}}/vendas/vendedor/999999
+Body: nenhum.
+Esperado: 200 OK com [] (a rota não retorna 404 para vendedor inexistente).
+
+3.7 Consultar vendas de uma região existente
+[GET] {{BASE_URL}}/vendas/regiao/1
+Body: nenhum.
+Esperado: 200 OK; array de vendas da região. Pode retornar [] se não houver vendas.
+
+3.8 Consultar vendas de região com ID inválido
+[GET] {{BASE_URL}}/vendas/regiao/abc
+Body: nenhum.
+Esperado: 400 Bad Request; ID da região inválido.
+
+3.9 Consultar vendas de região inexistente
+[GET] {{BASE_URL}}/vendas/regiao/999999
+Body: nenhum.
+Esperado: 200 OK com [] (a rota não retorna 404 para região inexistente).
+
+3.10 Cadastrar venda sem campos obrigatórios
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900010,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request; erro solicitando data_venda e demais campos obrigatórios.
+
+3.11 Cadastrar venda com ID da venda zero
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 0,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request; id_venda deve ser inteiro positivo.
+
+3.12 Cadastrar venda com ID da venda não inteiro
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 1.5,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request.
+
+3.13 Cadastrar venda com ID de vendedor inválido
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900013,
+  "id_vendedor": 0,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request; ID do vendedor ou da região inválido.
+
+3.14 Cadastrar venda com ID de região inválido
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900014,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": -1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request.
+
+3.15 Cadastrar venda com valor zero
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900015,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 0,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request; valor da venda deve ser maior que zero.
+
+3.16 Cadastrar venda com valor negativo
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900016,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": -10,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request.
+
+3.17 Cadastrar venda com valor não numérico
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900017,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": "abc",
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request.
+
+3.18 Cadastrar venda com tipo de cliente inválido
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900018,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "OUTRO"
+}
+Esperado: 400 Bad Request; tipo_cliente deve ser PF ou PJ.
+
+3.19 Cadastrar venda com tipo de cliente em minúsculas
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900019,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "pf"
+}
+Esperado: 400 Bad Request, pois a rota aceita apenas "PF" ou "PJ".
+
+3.20 Cadastrar venda com ID de venda duplicado
+[POST] {{BASE_URL}}/vendas
+Body: repetir exatamente uma venda já cadastrada, mantendo o mesmo id_venda.
+Esperado: 409 Conflict; {"erro":"Já existe uma venda com esse ID."}
+Exemplo: repetir o corpo de 3.1 após a primeira execução.
+
+3.21 Cadastrar venda para vendedor inexistente
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900021,
+  "id_vendedor": 999999,
+  "id_regiao": 1,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request; vendedor não encontrado ou desativado.
+
+3.22 Cadastrar venda para vendedor desativado
+[POST] {{BASE_URL}}/vendas
+Body: use o ID de um vendedor desativado, ID de venda ainda não utilizado e os
+demais campos válidos.
+Esperado: 400 Bad Request; vendedor não encontrado ou está desativado.
+
+3.23 Cadastrar venda para região inexistente
+[POST] {{BASE_URL}}/vendas
+Body:
+{
+  "id_venda": 900023,
+  "id_vendedor": <ID_VENDEDOR_VALIDO>,
+  "id_regiao": 999999,
+  "data_venda": "2026-10-22 10:00:00",
+  "valor_venda": 100,
+  "tipo_cliente": "PF"
+}
+Esperado: 400 Bad Request; região não encontrada.
+
+3.24 Excluir venda existente
+[DELETE] {{BASE_URL}}/vendas/900002
+Body: nenhum.
+Esperado: 200 OK; {"mensagem":"Venda excluída com sucesso."}
+Use uma venda de teste que possa ser removida.
+
+3.25 Excluir venda inexistente
+[DELETE] {{BASE_URL}}/vendas/999999
+Body: nenhum.
+Esperado: 404 Not Found; {"erro":"Venda não encontrada."}
+
+3.26 Excluir venda com ID inválido
+[DELETE] {{BASE_URL}}/vendas/abc
+Body: nenhum.
+Esperado: 400 Bad Request; {"erro":"ID da venda inválido."}
+
+4. RELATÓRIO DE PERFORMANCE
+4.1 Gerar relatório para período válido
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2026-10-01&fim=2026-10-31
+Body: nenhum.
+Esperado: 200 OK com:
+- periodo (inicio e fim);
+- indicadores_gerais (quantidade_vendas, total_vendido, media_comissao);
+- vendas_por_regiao;
+- vendas_por_tipo_cliente;
+- melhor_vendedor (objeto ou null);
+- maior_comissao_acumulada (objeto ou null);
+- metas_dos_vendedores;
+- quantidade_metas_atingidas.
+O relatório considera o intervalo inteiro, incluindo o dia final.
+
+4.2 Relatório sem parâmetros
+[GET] {{BASE_URL}}/relatorios/performance
+Body: nenhum.
+Esperado: 400 Bad Request; informar inicio e fim.
+
+4.3 Relatório sem data final
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2026-10-01
+Body: nenhum.
+Esperado: 400 Bad Request.
+
+4.4 Relatório sem data inicial
+[GET] {{BASE_URL}}/relatorios/performance?fim=2026-10-31
+Body: nenhum.
+Esperado: 400 Bad Request.
+
+4.5 Relatório com formato de data inválido
+[GET] {{BASE_URL}}/relatorios/performance?inicio=01-10-2026&fim=31-10-2026
+Body: nenhum.
+Esperado: 400 Bad Request; usar AAAA-MM-DD.
+
+4.6 Relatório com data impossível
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2026-99-99&fim=2026-10-31
+Body: nenhum.
+Esperado pretendido: 400 Bad Request.
+Observação: a validação atual usa Date.parse; confirme o comportamento para datas impossíveis
+no runtime utilizado e fortaleça a validação se necessário.
+
+4.7 Relatório com início posterior ao fim
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2026-10-31&fim=2026-10-01
+Body: nenhum.
+Esperado: 400 Bad Request; data inicial não pode ser posterior à final.
+
+4.8 Relatório de período sem vendas
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2000-01-01&fim=2000-01-31
+Body: nenhum.
+Esperado: 200 OK; indicadores gerais zerados, regiões listadas com totais zero,
+melhor_vendedor e maior_comissao_acumulada null; metas de vendedores ativos continuam
+listadas com total_vendido zero.
+
+4.9 Conferir a meta atingida
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2026-10-01&fim=2026-10-31
+Preparação: cadastre um vendedor com meta mensal conhecida e vendas no período que somem
+exatamente a meta. Depois execute a consulta.
+Esperado: meta_atingida = 1 e quantidade_metas_atingidas inclui esse vendedor.
+
+4.10 Conferir meta não atingida
+[GET] {{BASE_URL}}/relatorios/performance?inicio=2026-10-01&fim=2026-10-31
+Preparação: vendedor ativo com meta maior que a soma de suas vendas no período.
+Esperado: meta_atingida = 0.
+
+5. MATRIZ RESUMIDA DE ROTAS
+GET     /teste-banco
+POST    /vendedores
+GET     /vendedores
+GET     /vendedores/:id
+PUT     /vendedores/:id
+PATCH   /vendedores/:id/desativar
+POST    /vendas
+GET     /vendas
+GET     /vendas/vendedor/:id
+GET     /vendas/regiao/:id
+DELETE  /vendas/:id
+GET     /relatorios/performance
